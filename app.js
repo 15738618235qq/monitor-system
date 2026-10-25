@@ -1023,19 +1023,25 @@ function importData(){
         const cx=parseFloat(parts[4]),cy=parseFloat(parts[5]),cz=parseFloat(parts[6]);
         const result=calcDisplacement(ix,iy,iz,cx,cy,cz,bl,calcMode);
         let cumDisp=result.dDisp,cumSettle=result.settle;
-        if(isCum){
-          let baseDisp=null,baseSettle=null;
-          const prevKeys=Object.keys(appData.measurements||{}).filter(k=>k.startsWith(pjId+'_')&&k!==key).sort();
-          if(prevKeys.length>0){
-            const prevRecords=appData.measurements[prevKeys[prevKeys.length-1]];
-            const prev=prevRecords.find(r=>r.point===parts[0]);
-            if(prev){baseDisp=prev.cumDisp;baseSettle=prev.cumSettle!=null?prev.cumSettle:null;}
-          }
-          if(baseDisp==null){
-            const histPoint=(appData.historyCumData&&appData.historyCumData[pjId]&&appData.historyCumData[pjId][parts[0]])||[];
-            if(histPoint.length>0){const latest=histPoint.reduce((a,b)=>a.date>b.date?a:b);baseDisp=latest.cumDisp||0;baseSettle=latest.cumSettle||0;}
-          }
-          if(baseDisp!=null){cumDisp=parseFloat((baseDisp+result.dDisp).toFixed(2));cumSettle=parseFloat(((baseSettle!=null?baseSettle+result.settle:result.settle)).toFixed(2));}
+                if(isCum){
+          let baseDisp=null,baseSettle=null,baseDate='';
+          const histPoint=(appData.historyCumData&&appData.historyCumData[pjId]&&appData.historyCumData[pjId][parts[0]])||[];
+          if(histPoint.length>0){
+            const latest=histPoint.reduce((a,b)=>a.date>b.date?a:b);
+            baseDisp=latest.cumDisp!=null?latest.cumDisp:null;
+            baseSettle=latest.cumSettle!=null?latest.cumSettle:null;
+            baseDate=latest.date||'';
+          }
+          const prevKeys=Object.keys(appData.measurements||{}).filter(k=>k.startsWith(pjId+'_')&&k!==key).sort();
+          if(prevKeys.length>0){
+            const prevKey=prevKeys[prevKeys.length-1];
+            const prevRecords=appData.measurements[prevKey];
+            const prev=prevRecords.find(r=>r.point===parts[0]);
+            if(prev&&(baseDisp==null||(prevKey.substring(pjId.length+1)>baseDate&&prev.cumDisp!=null))){
+              baseDisp=prev.cumDisp;baseSettle=prev.cumSettle!=null?prev.cumSettle:null;
+            }
+          }
+          if(baseDisp!=null){cumDisp=parseFloat((baseDisp+result.dDisp).toFixed(2));cumSettle=parseFloat(((baseSettle!=null?baseSettle+result.settle:result.settle)).toFixed(2));}
         }
         records.push({point:parts[0],ix,iy,iz,cx,cy,cz,dInit:result.dInit,dCurr:result.dCurr,disp:result.dDisp,settle:result.settle,cumDisp,cumSettle,calcMode});
         count++;
